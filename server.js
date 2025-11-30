@@ -14,6 +14,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// CORS middleware for all requests (in case backend needs it)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Serve static files from the dist directory
 app.use(express.static(join(__dirname, 'dist')));
 
@@ -26,11 +37,17 @@ app.use('/api', createProxyMiddleware({
   changeOrigin: true,
   secure: false,
   pathRewrite: {
-    '^/api': '/healthmate',
+    '^/api': '',  // Remove /api prefix, keeping the /healthmate path
   },
   logLevel: 'debug',
   onProxyReq: (proxyReq, req, res) => {
-    console.log(`[Proxy] ${req.method} ${req.url} -> ${backendUrl}/healthmate`);
+    console.log(`[Proxy] ${req.method} ${req.url} -> ${backendUrl}${req.url.replace('/api', '')}`);
+  },
+  onProxyRes: (proxyRes, req, res) => {
+    // Add CORS headers to proxy response (server-to-server, but good practice)
+    proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+    proxyRes.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
   },
   onError: (err, req, res) => {
     console.error('[Proxy Error]', err.message);

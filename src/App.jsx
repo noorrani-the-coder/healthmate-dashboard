@@ -21,11 +21,10 @@ import {
 
 /* ---------------- BACKEND POST (Standard relative URL) ---------------- */
 async function backendPost(payload) {
-  // In production, use environment variable if set, otherwise use relative /api path (proxied by server)
-  // In development, use relative /api path (proxied by Vite)
-  const API_ENDPOINT = import.meta.env.PROD
-    ? (import.meta.env.VITE_API_ENDPOINT || "/api/healthmate")
-    : "/api/healthmate";
+  // Always use relative /api path - in production this goes through Express proxy (server-to-server, no CORS)
+  // In development, Vite proxy handles it
+  // The Express server uses VITE_API_ENDPOINT env var to know where to proxy to
+  const API_ENDPOINT = "/api/healthmate";
   const FETCH_TIMEOUT_MS = 20000;
 
   try {
