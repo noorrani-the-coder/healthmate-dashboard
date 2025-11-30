@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: healthmate-frontend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: VITE_API_ENDPOINT
+        value: https://healthmatebackend-875662263.development.catalystserverless.com
+        sync: false  # Set this to your actual backend URL in Render dashboard
+
