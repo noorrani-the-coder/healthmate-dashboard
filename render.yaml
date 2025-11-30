@@ -6,11 +6,12 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
-      - key: NODE_ENV
-        value: production
+      # NODE_ENV should NOT be set to production during build (it will skip dev dependencies)
+      # Render will set it automatically at runtime
       - key: PORT
         value: 3000
       - key: VITE_API_ENDPOINT
         value: https://healthmatebackend-875662263.development.catalystserverless.com
         sync: false  # Set this to your actual backend URL in Render dashboard
+      # Note: NODE_ENV will be automatically set to 'production' at runtime by Render
 
