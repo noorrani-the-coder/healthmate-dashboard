@@ -1234,7 +1234,7 @@ function AppShell() {
 
   const botHoverTimeout = useRef(null);
   const navigate = useNavigate();
-
+   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -1616,86 +1616,77 @@ function AppShell() {
       </main>
 
       {/* Floating Bot */}
+            {location.pathname !== "/demo-bot" && (
+  <div
+    className="fixed bottom-6 right-6 z-50 flex items-end justify-end"
+    onMouseEnter={handleBotMouseEnter}
+    onMouseLeave={handleBotMouseLeave}
+  >
+    {botPopupOpen && (
       <div
-        className="fixed bottom-6 right-6 z-50 flex items-end justify-end"
-        onMouseEnter={handleBotMouseEnter}
-        onMouseLeave={handleBotMouseLeave}
+        className="mr-3 mb-2 w-56 bg-white rounded-xl shadow-xl p-3 ring-4 ring-indigo-200 animate-pulse"
+        style={{ boxShadow: "0 10px 30px rgba(99,102,241,0.12)" }}
       >
-        {botPopupOpen && (
-          <div
-            className="mr-3 mb-2 w-56 bg-white rounded-xl shadow-xl p-3 ring-4 ring-indigo-200 animate-pulse"
-            style={{ boxShadow: "0 10px 30px rgba(99,102,241,0.12)" }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 text-lg">
-                  🤖
-                </div>
-                <div>
-                  <div className="font-semibold">HealthMate Bot</div>
-                  <div className="text-xs text-gray-500">Open in Zoho Cliq</div>
-                </div>
-              </div>
-              <button
-                onClick={() => setBotPopupOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 text-lg">
+              🤖
             </div>
-
-            <div className="mt-3">
-              <button
-                onClick={() =>
-                  //window.open(
-                   // "https://cliq.zoho.com/bots/healthmatedoctor",
-                    //"_blank"
-                  //)
-                  navigate("/demo-bot")
-                }
-                className="w-full bg-indigo-600 text-white py-2 rounded"
-              >
-                Open Bot
-              </button>
-              <button
-                onClick={() => {
-                  try {
-                    //window.location.href = "zohocliq://chat?bot=healthmatedoctor";
-                    navigate("/demo-bot")
-                  } catch (_) {}
-                }}
-                className="w-full mt-2 border rounded py-2 text-sm"
-              >
-                Open in App
-              </button>
+            <div>
+              <div className="font-semibold">HealthMate Bot</div>
+              <div className="text-xs text-gray-500">Open in Zoho Cliq</div>
             </div>
           </div>
-        )}
-
-        <button
-          onClick={() =>
-            //window.open("https://cliq.zoho.com/bots/healthmatedoctor", "_blank")
-            navigate("/demo-bot")
-          }
-          title="Access HealthMate Bot"
-          className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl transition-transform transform focus:outline-none ${
-            botPopupOpen ? "ring-4 ring-indigo-200 scale-105" : "hover:scale-105"
-          }`}
-          style={{
-            background: "linear-gradient(180deg,#6366f1,#4f46e5)",
-            color: "white",
-            boxShadow: botPopupOpen
-              ? "0 12px 30px rgba(99,102,241,0.28)"
-              : "0 8px 20px rgba(79,70,229,0.18)",
-          }}
-        >
-          <span
-            style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.15))" }}
+          <button
+            onClick={() => setBotPopupOpen(false)}
+            className="text-gray-400 hover:text-gray-600"
           >
-            🤖
-          </span>
-        </button>
+            ✕
+          </button>
+        </div>
+
+        <div className="mt-3">
+          <button
+            onClick={() => navigate("/demo-bot")}
+            className="w-full bg-indigo-600 text-white py-2 rounded"
+          >
+            Open Bot
+          </button>
+
+          <button
+            onClick={() => {
+              try {
+                navigate("/demo-bot");
+              } catch (_) {}
+            }}
+            className="w-full mt-2 border rounded py-2 text-sm"
+          >
+            Open in App
+          </button>
+        </div>
       </div>
+    )}
+
+    <button
+      onClick={() => navigate("/demo-bot")}
+      title="Access HealthMate Bot"
+      className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl transition-transform transform focus:outline-none ${
+        botPopupOpen ? "ring-4 ring-indigo-200 scale-105" : "hover:scale-105"
+      }`}
+      style={{
+        background: "linear-gradient(180deg,#6366f1,#4f46e5)",
+        color: "white",
+        boxShadow: botPopupOpen
+          ? "0 12px 30px rgba(99,102,241,0.28)"
+          : "0 8px 20px rgba(79,70,229,0.18)",
+      }}
+    >
+      <span style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.15))" }}>
+        🤖
+      </span>
+    </button>
+  </div>
+)}
 
       {/* Sign In Modal */}
       {signInOpen && (
