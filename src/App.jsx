@@ -18,10 +18,13 @@ import {
   Link,
   useNavigate,
 } from "react-router-dom";
+import DemoBot from "./DemoBot";
 
 /* ---------------- BACKEND POST (Standard relative URL) ---------------- */
 async function backendPost(payload) {
-  const API_ENDPOINT = "/api";
+  // Standard relative URL expected by the environment
+  //const API_ENDPOINT = "/api/healthmate";
+   const API_ENDPOINT = "/api";
   const FETCH_TIMEOUT_MS = 60000;
 
   try {
@@ -37,41 +40,36 @@ async function backendPost(payload) {
 
     clearTimeout(timeoutId);
 
-    // Read once
-    const raw = await response.text();
-    let data = null;
-
-    // Try parse JSON
-    try {
-      data = raw ? JSON.parse(raw) : null;
-    } catch (_) {
-      data = null;
-    }
-
-    // Special case 404 health_report
     if (response.status === 404 && payload?.type === "health_report") {
-      return { __notFound: true, ...(data || {}) };
+      let parsed;
+      try {
+        parsed = await response.json();
+      } catch {
+        parsed = { error: "Profile not found." };
+      }
+      return { __notFound: true, ...parsed };
     }
 
-    // If not OK → throw error object
     if (!response.ok) {
-      throw new Error(
-        JSON.stringify(
-          data || {
-            error: raw || "Unknown backend error",
-            status: response.status,
-          }
-        )
-      );
+      let parsed;
+      try {
+        parsed = await response.json();
+      } catch {
+        const errorText = await response.text();
+        parsed = {
+          error: errorText || "Unknown backend error",
+          status: response.status,
+        };
+      }
+      throw new Error(JSON.stringify(parsed));
     }
 
-    return data;
+    return await response.json();
   } catch (err) {
     console.error("❌ Backend error:", err);
     throw err;
   }
 }
-
 
 /* ---------------- UI HELPERS (unchanged) ---------------- */
 const CARD_BASE = "bg-white rounded-2xl p-3 shadow-sm";
@@ -1484,7 +1482,8 @@ function AppShell() {
 
             <button
               onClick={() =>
-                window.open("https://cliq.zoho.com/bots/healthmatedoctor", "_blank")
+                //window.open("https://cliq.zoho.com/bots/healthmatedoctor", "_blank")
+                navigate("/demo-bot")
               }
               className="px-3 py-1 rounded bg-indigo-600 text-white"
             >
@@ -1550,10 +1549,11 @@ function AppShell() {
                 </button>
                 <button
                   onClick={() => {
-                    window.open(
-                      "https://cliq.zoho.com/bots/healthmatedoctor",
-                      "_blank"
-                    );
+                    //window.open(
+                      //"https://cliq.zoho.com/bots/healthmatedoctor",
+                      //"_blank"
+                    //);
+                    navigate("/demo-bot")
                     setMenuOpen(false);
                   }}
                   className="block w-full text-left p-2 text-sm"
@@ -1612,6 +1612,7 @@ function AppShell() {
           <Route path="/" element={<HealthDashboard employeeIdProp={employeeId} />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/demo-bot" element={<DemoBot />} />
         </Routes>
       </main>
 
@@ -1647,10 +1648,11 @@ function AppShell() {
             <div className="mt-3">
               <button
                 onClick={() =>
-                  window.open(
-                    "https://cliq.zoho.com/bots/healthmatedoctor",
-                    "_blank"
-                  )
+                  //window.open(
+                   // "https://cliq.zoho.com/bots/healthmatedoctor",
+                    //"_blank"
+                  //)
+                  navigate("/demo-bot")
                 }
                 className="w-full bg-indigo-600 text-white py-2 rounded"
               >
@@ -1659,7 +1661,8 @@ function AppShell() {
               <button
                 onClick={() => {
                   try {
-                    window.location.href = "zohocliq://chat?bot=healthmatedoctor";
+                    //window.location.href = "zohocliq://chat?bot=healthmatedoctor";
+                    navigate("/demo-bot")
                   } catch (_) {}
                 }}
                 className="w-full mt-2 border rounded py-2 text-sm"
@@ -1672,7 +1675,8 @@ function AppShell() {
 
         <button
           onClick={() =>
-            window.open("https://cliq.zoho.com/bots/healthmatedoctor", "_blank")
+            //window.open("https://cliq.zoho.com/bots/healthmatedoctor", "_blank")
+            navigate("/demo-bot")
           }
           title="Access HealthMate Bot"
           className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl transition-transform transform focus:outline-none ${
