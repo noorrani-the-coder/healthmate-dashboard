@@ -21,7 +21,7 @@ import {
 
 /* ---------------- BACKEND POST (Standard relative URL) ---------------- */
 async function backendPost(payload) {
-  const API_ENDPOINT = "/api/healthmate";
+  const API_ENDPOINT = "/api";
   const FETCH_TIMEOUT_MS = 60000;
 
   try {
