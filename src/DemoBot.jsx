@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 
 /* ---------------- BACKEND CALL ---------------- */
 async function backendPost(payload) {
-  const API_ENDPOINT = "/api/healthmate";
+  const API_ENDPOINT = "/api";
 
   const res = await fetch(API_ENDPOINT, {
     method: "POST",
@@ -510,3 +510,4 @@ function ProfileFormGlass({ draft, setDraft, onClose, onSave, saving }) {
     </div>
   );
 }
+
