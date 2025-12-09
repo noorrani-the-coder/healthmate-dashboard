@@ -1267,7 +1267,7 @@ function AppShell() {
     if (!employeeId) {
       setAlertModal({
         title: "Sign In Required",
-        message: "Please sign in (set Employee ID) before creating a channel.(For Demo Enter Random Number and Refresh)",
+        message: "Please sign in (set Employee ID) before creating a channel.",
       });
       return;
     }
@@ -1702,7 +1702,7 @@ function AppShell() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <h3 className="text-lg font-semibold mb-2">Sign In</h3>
-            <p className="text-sm text-gray-600 mb-4">Enter your Employee ID</p>
+            <p className="text-sm text-gray-600 mb-4">Enter your Employee ID(For Demo Enter Random Number and Then Refresh)</p>
             <input
               value={signInValue}
               onChange={(e) => setSignInValue(e.target.value)}
