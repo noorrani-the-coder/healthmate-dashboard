@@ -1267,7 +1267,7 @@ function AppShell() {
     if (!employeeId) {
       setAlertModal({
         title: "Sign In Required",
-        message: "Please sign in (set Employee ID) before creating a channel.",
+        message: "Please sign in (set Employee ID) before creating a channel.(For Demo Enter Random Number and Refresh)",
       });
       return;
     }
