@@ -531,6 +531,7 @@ function HealthDashboard({ employeeIdProp }) {
   }
 
   // new user creation (simple)
+  const navigate = useNavigate();
 async function handleCreateProfile(e) {
   e && e.preventDefault();
 
