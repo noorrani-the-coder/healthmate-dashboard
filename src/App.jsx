@@ -531,21 +531,19 @@ function HealthDashboard({ employeeIdProp }) {
   }
 
   // new user creation (simple)
-  async function handleCreateProfile(e) {
-    e && e.preventDefault();
-    try {
-      await backendPost({
-        employee_id: employeeId,
-        type: "update_profile",
-        name: profile?.name || "New User",
-      });
-      setIsNewUser(false);
-      await fetchHealthReport();
-      await fetchChartData();
-    } catch (err) {
-      console.error("create profile error", err);
-    }
+async function handleCreateProfile(e) {
+  e && e.preventDefault();
+
+  try {
+    // ❌ remove creation logic
+    // await backendPost({...});
+
+    // 👉 directly redirect to bot page
+    navigate("/demo-bot");   // change "/bot" to your actual route
+  } catch (err) {
+    console.error("Navigation error", err);
   }
+}
 
   // UI fallback for new user
   if (isNewUser) {
@@ -554,7 +552,7 @@ function HealthDashboard({ employeeIdProp }) {
         <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-6">
           <h2 className="text-lg font-semibold mb-1">Welcome to HealthMate</h2>
           <p className="text-sm text-gray-600 mb-3">
-            Please complete your basic profile.
+            Please complete your basic profile. Click on Sign In give Random Number You re-direct to the form!!.
           </p>
           <button
             onClick={handleCreateProfile}
