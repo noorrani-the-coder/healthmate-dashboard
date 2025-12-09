@@ -21,11 +21,7 @@ import {
 
 /* ---------------- BACKEND POST (Standard relative URL) ---------------- */
 async function backendPost(payload) {
-  // Standard relative URL expected by the environment
-  //const API_ENDPOINT = "/api/healthmate";
-  const API_ENDPOINT = import.meta.env.PROD
-    ? import.meta.env.VITE_API_ENDPOINT
-    : "/api/healthmate";
+  const API_ENDPOINT = "/api/healthmate";
   const FETCH_TIMEOUT_MS = 60000;
 
   try {
@@ -41,36 +37,41 @@ async function backendPost(payload) {
 
     clearTimeout(timeoutId);
 
+    // Read once
+    const raw = await response.text();
+    let data = null;
+
+    // Try parse JSON
+    try {
+      data = raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      data = null;
+    }
+
+    // Special case 404 health_report
     if (response.status === 404 && payload?.type === "health_report") {
-      let parsed;
-      try {
-        parsed = await response.json();
-      } catch {
-        parsed = { error: "Profile not found." };
-      }
-      return { __notFound: true, ...parsed };
+      return { __notFound: true, ...(data || {}) };
     }
 
+    // If not OK → throw error object
     if (!response.ok) {
-      let parsed;
-      try {
-        parsed = await response.json();
-      } catch {
-        const errorText = await response.text();
-        parsed = {
-          error: errorText || "Unknown backend error",
-          status: response.status,
-        };
-      }
-      throw new Error(JSON.stringify(parsed));
+      throw new Error(
+        JSON.stringify(
+          data || {
+            error: raw || "Unknown backend error",
+            status: response.status,
+          }
+        )
+      );
     }
 
-    return await response.json();
+    return data;
   } catch (err) {
     console.error("❌ Backend error:", err);
     throw err;
   }
 }
+
 
 /* ---------------- UI HELPERS (unchanged) ---------------- */
 const CARD_BASE = "bg-white rounded-2xl p-3 shadow-sm";
