@@ -21,17 +21,18 @@ import {
 
 /* ---------------- BACKEND POST (Standard relative URL) ---------------- */
 async function backendPost(payload) {
-  // Always use relative /api path - in production this goes through Express proxy (server-to-server, no CORS)
-  // In development, Vite proxy handles it
-  // The Express server uses VITE_API_ENDPOINT env var to know where to proxy to
-  const API_ENDPOINT = "/api/healthmate";
-  const FETCH_TIMEOUT_MS = 20000;
+  // Standard relative URL expected by the environment
+  //const API_ENDPOINT = "/api/healthmate";
+  const API_ENDPOINT = import.meta.env.PROD
+    ? import.meta.env.VITE_API_ENDPOINT
+    : "/api/healthmate";
+  const FETCH_TIMEOUT_MS = 60000;
 
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-    const response = await fetch(API_ENDPOINT, { // Use the standard relative URL
+    const response = await fetch(API_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -53,13 +54,13 @@ async function backendPost(payload) {
     if (!response.ok) {
       let parsed;
       try {
-        // Attempt to parse JSON error body
         parsed = await response.json();
       } catch {
-        // If JSON parsing fails, read the response as text for better debugging
         const errorText = await response.text();
-        // Return structured error message including the response text if available
-        parsed = { error: errorText || "Unknown backend error", status: response.status };
+        parsed = {
+          error: errorText || "Unknown backend error",
+          status: response.status,
+        };
       }
       throw new Error(JSON.stringify(parsed));
     }
@@ -105,8 +106,13 @@ function BackendStatus({ employeeId }) {
     return () => (mounted = false);
   }, [employeeId]);
 
-  if (ok === null) return <div className="text-xs text-gray-400">Backend: checking…</div>;
-  return ok ? <div className="text-xs text-green-600"></div> : <div className="text-xs text-red-600">Backend: error</div>;
+  if (ok === null)
+    return <div className="text-xs text-gray-400">Backend: checking…</div>;
+  return ok ? (
+    <div className="text-xs text-green-600"></div>
+  ) : (
+    <div className="text-xs text-red-600">Backend: error</div>
+  );
 }
 
 /* =========================
@@ -168,7 +174,14 @@ function BreathingWidget() {
     };
   }, []);
 
-  const circleScale = breathingStep === "inhale" ? 1.15 : breathingStep === "hold" ? 1.05 : breathingStep === "exhale" ? 0.85 : 1;
+  const circleScale =
+    breathingStep === "inhale"
+      ? 1.15
+      : breathingStep === "hold"
+      ? 1.05
+      : breathingStep === "exhale"
+      ? 0.85
+      : 1;
 
   return (
     <div>
@@ -188,34 +201,62 @@ function BreathingWidget() {
             boxShadow: "inset 0 6px 18px rgba(99,102,241,0.08)",
           }}
         >
-          <div className="text-sm text-gray-700">{breathingStep === "idle" ? "Ready" : breathingStep.toUpperCase()}</div>
+          <div className="text-sm text-gray-700">
+            {breathingStep === "idle" ? "Ready" : breathingStep.toUpperCase()}
+          </div>
         </div>
 
-        <div className="mt-3 text-sm text-gray-600">{breathingRunning ? `Elapsed: ${breathElapsedSec}s` : "Tap Start to begin"}</div>
+        <div className="mt-3 text-sm text-gray-600">
+          {breathingRunning ? `Elapsed: ${breathElapsedSec}s` : "Tap Start to begin"}
+        </div>
 
         <div className="mt-3 flex gap-2 justify-center">
           {!breathingRunning ? (
             <>
-              <button onClick={() => startBreathing("Calm")} className="px-4 py-2 bg-indigo-600 text-white rounded">Start</button>
-              <button onClick={() => startBreathing("Relax")} className="px-3 py-2 border rounded">Relax</button>
-              <button onClick={() => startBreathing("Focus")} className="px-3 py-2 border rounded">Focus</button>
+              <button
+                onClick={() => startBreathing("Calm")}
+                className="px-4 py-2 bg-indigo-600 text-white rounded"
+              >
+                Start
+              </button>
+              <button
+                onClick={() => startBreathing("Relax")}
+                className="px-3 py-2 border rounded"
+              >
+                Relax
+              </button>
+              <button
+                onClick={() => startBreathing("Focus")}
+                className="px-3 py-2 border rounded"
+              >
+                Focus
+              </button>
             </>
           ) : (
-            <button onClick={stopBreathing} className="px-4 py-2 bg-red-500 text-white rounded">Stop</button>
+            <button
+              onClick={stopBreathing}
+              className="px-4 py-2 bg-red-500 text-white rounded"
+            >
+              Stop
+            </button>
           )}
         </div>
 
-        <div className="mt-2 text-xs text-gray-400">Simple guided breathing — cycle lengths depend on mode.</div>
+        <div className="mt-2 text-xs text-gray-400">
+          Simple guided breathing — cycle lengths depend on mode.
         </div>
+      </div>
     </div>
   );
 }
 
 /* =========================
-   HealthDashboard component (unchanged logic, hover glow etc.)
+   HealthDashboard component
    ========================= */
 function HealthDashboard({ employeeIdProp }) {
-  const [employeeId] = useState(employeeIdProp || localStorage.getItem("employee_id") || "emp_001");
+  const [employeeId] = useState(
+    employeeIdProp || localStorage.getItem("employee_id") || "emp_001"
+  );
 
   const [profile, setProfile] = useState(null);
   const [isNewUser, setIsNewUser] = useState(false);
@@ -256,13 +297,13 @@ function HealthDashboard({ employeeIdProp }) {
   // Hover/focus handlers:
   const onEnter = (id) => setActiveWidget(id);
   const onLeave = () => setActiveWidget(null);
-  // keyboard accessibility: focus/blur mirrors hover
   const onFocus = (id) => setActiveWidget(id);
   const onBlur = () => setActiveWidget(null);
 
   useEffect(() => {
     localStorage.setItem("hm_mood", mood);
   }, [mood]);
+
   useEffect(() => {
     localStorage.setItem("hm_water_glasses", String(waterGlasses));
   }, [waterGlasses]);
@@ -285,56 +326,74 @@ function HealthDashboard({ employeeIdProp }) {
         setPersonalizedTips(Array.isArray(data.tips) ? data.tips : [data.tips]);
       }
 
-      if (data.hydration?.glasses !== undefined) setWaterGlasses(data.hydration.glasses);
+      if (data.hydration?.glasses !== undefined)
+        setWaterGlasses(data.hydration.glasses);
     } catch (err) {
       console.error("fetchHealthReport", err);
     }
   }, [employeeId]);
 
-  const fetchChartData = useCallback(async () => {
-    try {
-      const data = await backendPost({
-        employee_id: employeeId,
-        type: "chart_data",
-      });
+  const fetchChartData = useCallback(
+    async () => {
+      try {
+        const data = await backendPost({
+          employee_id: employeeId,
+          type: "chart_data",
+        });
 
-      console.info("fetchChartData -> backend returned:", data);
+        console.info("fetchChartData -> backend returned:", data);
 
-      const healthTrend = Array.isArray(data?.healthTrend) ? data.healthTrend : [];
-      const vitalsTrend = Array.isArray(data?.vitalsTrend) ? data.vitalsTrend : [];
-      const consultationsByMonth = Array.isArray(data?.consultationsByMonth) ? data.consultationsByMonth : [];
-      const remindersAdherence = Array.isArray(data?.remindersAdherence) ? data.remindersAdherence : [];
+        const healthTrend = Array.isArray(data?.healthTrend)
+          ? data.healthTrend
+          : [];
+        const vitalsTrend = Array.isArray(data?.vitalsTrend)
+          ? data.vitalsTrend
+          : [];
+        const consultationsByMonth = Array.isArray(
+          data?.consultationsByMonth
+        )
+          ? data.consultationsByMonth
+          : [];
+        const remindersAdherence = Array.isArray(data?.remindersAdherence)
+          ? data.remindersAdherence
+          : [];
 
-      const demoHealthTrend = [
-        { date: "2025-11-01", score: 72 },
-        { date: "2025-11-05", score: 75 },
-        { date: "2025-11-10", score: 68 },
-        { date: "2025-11-15", score: 77 },
-        { date: "2025-11-20", score: 82 },
-      ];
-
-      setChartData({
-        healthTrend: healthTrend.length ? healthTrend : demoHealthTrend,
-        vitalsTrend,
-        consultationsByMonth,
-        remindersAdherence,
-      });
-
-      if (!healthTrend.length) {
-        console.warn("fetchChartData: backend returned empty healthTrend — showing demo data. Check your /api/healthmate chart_data response.");
-      }
-    } catch (err) {
-      console.error("fetchChartData error", err);
-      setChartData((prev) => ({
-        ...prev,
-        healthTrend: prev.healthTrend.length ? prev.healthTrend : [
+        const demoHealthTrend = [
           { date: "2025-11-01", score: 72 },
           { date: "2025-11-05", score: 75 },
           { date: "2025-11-10", score: 68 },
-        ],
-      }));
-    }
-  }, [employeeId]);
+          { date: "2025-11-15", score: 77 },
+          { date: "2025-11-20", score: 82 },
+        ];
+
+        setChartData({
+          healthTrend: healthTrend.length ? healthTrend : demoHealthTrend,
+          vitalsTrend,
+          consultationsByMonth,
+          remindersAdherence,
+        });
+
+        if (!healthTrend.length) {
+          console.warn(
+            "fetchChartData: backend returned empty healthTrend — showing demo data. Check your /api/healthmate chart_data response."
+          );
+        }
+      } catch (err) {
+        console.error("fetchChartData error", err);
+        setChartData((prev) => ({
+          ...prev,
+          healthTrend: prev.healthTrend.length
+            ? prev.healthTrend
+            : [
+                { date: "2025-11-01", score: 72 },
+                { date: "2025-11-05", score: 75 },
+                { date: "2025-11-10", score: 68 },
+              ],
+        }));
+      }
+    },
+    [employeeId]
+  );
 
   useEffect(() => {
     if (!employeeId) return;
@@ -346,7 +405,8 @@ function HealthDashboard({ employeeIdProp }) {
     })();
 
     return () => {
-      if (hydrationDebounceRef.current) clearTimeout(hydrationDebounceRef.current);
+      if (hydrationDebounceRef.current)
+        clearTimeout(hydrationDebounceRef.current);
     };
   }, [employeeId, fetchHealthReport, fetchChartData]);
 
@@ -364,8 +424,12 @@ function HealthDashboard({ employeeIdProp }) {
   function changeGlass(delta) {
     const next = Math.max(0, Math.min(MAX_GLASSES, waterGlasses + delta));
     setWaterGlasses(next);
-    if (hydrationDebounceRef.current) clearTimeout(hydrationDebounceRef.current);
-    hydrationDebounceRef.current = setTimeout(() => persistHydrationToBackend(next), 500);
+    if (hydrationDebounceRef.current)
+      clearTimeout(hydrationDebounceRef.current);
+    hydrationDebounceRef.current = setTimeout(
+      () => persistHydrationToBackend(next),
+      500
+    );
   }
 
   // mood save
@@ -373,7 +437,11 @@ function HealthDashboard({ employeeIdProp }) {
     setMood(newMood);
     if (!employeeId) return;
     try {
-      await backendPost({ employee_id: employeeId, type: "save_mood", mood: newMood });
+      await backendPost({
+        employee_id: employeeId,
+        type: "save_mood",
+        mood: newMood,
+      });
     } catch (err) {
       console.warn("saveMood error", err);
     }
@@ -403,7 +471,10 @@ function HealthDashboard({ employeeIdProp }) {
     } finally {
       setChatLoading(false);
       setMessage("");
-      setTimeout(() => replyRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      setTimeout(
+        () => replyRef.current?.scrollIntoView({ behavior: "smooth" }),
+        50
+      );
     }
   }
 
@@ -435,7 +506,7 @@ function HealthDashboard({ employeeIdProp }) {
     }
   }
 
-  // BMI
+  // BMI (logic unchanged)
   function computeBMIValue(wKg, hCm) {
     const h = Number(hCm) / 100;
     const w = Number(wKg);
@@ -447,7 +518,13 @@ function HealthDashboard({ employeeIdProp }) {
     const val = computeBMIValue(weight, height);
     setBmi(val);
     try {
-      await backendPost({ employee_id: employeeId, type: "save_bmi", bmi: val, weight, height });
+      await backendPost({
+        employee_id: employeeId,
+        type: "save_bmi",
+        bmi: val,
+        weight,
+        height,
+      });
       await fetchHealthReport();
     } catch (err) {
       console.error("save bmi error", err);
@@ -477,14 +554,21 @@ function HealthDashboard({ employeeIdProp }) {
       <div className="h-full w-full p-3 flex items-center justify-center">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-6">
           <h2 className="text-lg font-semibold mb-1">Welcome to HealthMate</h2>
-          <p className="text-sm text-gray-600 mb-3">Please complete your basic profile.</p>
-          <button onClick={handleCreateProfile} className="w-full bg-indigo-600 text-white py-2 rounded">Create sample profile</button>
+          <p className="text-sm text-gray-600 mb-3">
+            Please complete your basic profile.
+          </p>
+          <button
+            onClick={handleCreateProfile}
+            className="w-full bg-indigo-600 text-white py-2 rounded"
+          >
+            Create sample profile
+          </button>
         </div>
       </div>
     );
   }
 
-  // ===== Styles for animated glow/pulse (single-color indigo ring) =====
+  // ===== Styles for animated glow/pulse =====
   const HoverStyles = (
     <style>{`
       @keyframes hm-glow-pulse {
@@ -530,7 +614,9 @@ function HealthDashboard({ employeeIdProp }) {
         role="button"
         tabIndex={0}
         onClick={onClick}
-        className={`relative overflow-visible ${className} ${isActive ? "z-30" : ""}`}
+        className={`relative overflow-visible ${className} ${
+          isActive ? "z-30" : ""
+        }`}
         style={{ zIndex: isActive ? 30 : 1 }}
       >
         {isActive && <ActiveRing />}
@@ -538,23 +624,31 @@ function HealthDashboard({ employeeIdProp }) {
           style={{
             position: "relative",
             zIndex: 10,
-            animation: isActive ? "hm-glow-pulse 1.2s ease-in-out infinite" : undefined,
+            animation: isActive
+              ? "hm-glow-pulse 1.2s ease-in-out infinite"
+              : undefined,
             borderRadius: 12,
             transition: "transform 200ms ease, box-shadow 200ms ease",
             transform: isActive ? "translateY(-3px) scale(1.02)" : undefined,
-            boxShadow: isActive ? "0 18px 50px rgba(59,130,246,0.16)" : undefined,
+            boxShadow: isActive
+              ? "0 18px 50px rgba(59,130,246,0.16)"
+              : undefined,
             backgroundClip: "padding-box",
           }}
         >
           {children}
         </div>
-        </div>
+      </div>
     );
   }
 
-  const visualCard = (id, extra = "") => `${CARD_BASE} ${extra} transition-all duration-150 cursor-pointer ${activeWidget === id ? " " : "hover:shadow-md"}`.trim();
+  const visualCard = (id, extra = "") =>
+    `${CARD_BASE} ${extra} transition-all duration-150 cursor-pointer ${
+      activeWidget === id ? " " : "hover:shadow-md"
+    }`.trim();
 
-  const visualBox = (id) => `bg-white rounded border p-3 flex flex-col transition-all duration-150 cursor-pointer`.trim();
+  const visualBox = (id) =>
+    "bg-white rounded border p-3 flex flex-col transition-all duration-150 cursor-pointer";
 
   return (
     <div className="h-full w-full p-6 bg-gray-50">
@@ -562,22 +656,44 @@ function HealthDashboard({ employeeIdProp }) {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-12 gap-6">
           {/* LEFT column */}
-          <div className="col-span-3 space-y-4">
+          <div className="col-span-12 lg:col-span-3 space-y-4">
             {/* Profile card */}
-            <CardHover id="profile" className={visualCard("profile")} onClick={() => openProfileEditor()}>
+            <CardHover
+              id="profile"
+              className={visualCard("profile")}
+              onClick={() => openProfileEditor()}
+            >
               <div className="flex items-start gap-4 p-5">
                 <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold text-xl">
-                  {(profile?.name || "NA").split(" ").map(n => n?.[0] || "").slice(0,2).join("")}
+                  {(profile?.name || "NA")
+                    .split(" ")
+                    .map((n) => n?.[0] || "")
+                    .slice(0, 2)
+                    .join("")}
                 </div>
                 <div className="flex-1">
-                  <div className="text-lg font-semibold">{profile?.name || "No Name"}</div>
-                  <div className="text-sm text-gray-500">Age: {profile?.age ?? "-"}</div>
-                  <div className="text-sm text-gray-500">Gender: {profile?.gender ?? "-"}</div>
-                  <div className="text-sm text-gray-500">Blood Group: {profile?.blood_group ?? "-"}</div>
-                  <div className="mt-2 text-sm text-gray-600">Allergies: {profile?.allergies || "-"}</div>
-                  <div className="mt-1 text-sm text-gray-600">Chronic: {profile?.chronic_conditions || "-"}</div>
+                  <div className="text-lg font-semibold">
+                    {profile?.name || "No Name"}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Age: {profile?.age ?? "-"}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Gender: {profile?.gender ?? "-"}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Blood Group: {profile?.blood_group ?? "-"}
+                  </div>
+                  <div className="mt-2 text-sm text-gray-600">
+                    Allergies: {profile?.allergies || "-"}
+                  </div>
+                  <div className="mt-1 text-sm text-gray-600">
+                    Chronic: {profile?.chronic_conditions || "-"}
+                  </div>
                   <div className="mt-3 text-sm">
-                    <span className="text-green-600 font-semibold">Health score: {profile?.health_score ?? "—"}</span>
+                    <span className="text-green-600 font-semibold">
+                      Health score: {profile?.health_score ?? "—"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -588,18 +704,27 @@ function HealthDashboard({ employeeIdProp }) {
               <h4 className="text-sm font-semibold mb-2 p-3">Mood Today</h4>
               <div className="px-3 pb-3">
                 <div className="flex gap-3">
-                  {["😀","🙂","😐","😔"].map((m,i)=>{
+                  {["😀", "🙂", "😐", "😔"].map((m, i) => {
                     const active = mood === m;
                     return (
-                      <button key={i}
-                        onClick={(e)=>{ e.stopPropagation(); saveMood(m); }}
-                        className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg ${active ? "ring-2 ring-indigo-300" : ""}`}>
+                      <button
+                        key={i}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          saveMood(m);
+                        }}
+                        className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg ${
+                          active ? "ring-2 ring-indigo-300" : ""
+                        }`}
+                      >
                         {m}
                       </button>
                     );
                   })}
                 </div>
-                <div className="text-xs text-gray-400 mt-2">{mood ? `Logged mood: ${mood}` : "Hover & choose mood"}</div>
+                <div className="text-xs text-gray-400 mt-2">
+                  {mood ? `Logged mood: ${mood}` : "Hover & choose mood"}
+                </div>
               </div>
             </CardHover>
 
@@ -608,15 +733,41 @@ function HealthDashboard({ employeeIdProp }) {
               <h4 className="text-sm font-semibold mb-2 p-3">Hydration</h4>
               <div className="px-3 pb-3">
                 <div className="flex items-center gap-3">
-                  <button onClick={(e)=>{ e.stopPropagation(); changeGlass(-1); }} className="w-8 h-8 rounded-full border" disabled={waterGlasses<=0}>-</button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      changeGlass(-1);
+                    }}
+                    className="w-8 h-8 rounded-full border"
+                    disabled={waterGlasses <= 0}
+                  >
+                    -
+                  </button>
                   <div className="flex-1">
                     <div className="w-full bg-gray-200 h-2 rounded-full">
-                      <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${(waterGlasses/MAX_GLASSES)*100}%` }} />
+                      <div
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{
+                          width: `${(waterGlasses / MAX_GLASSES) * 100}%`,
+                        }}
+                      />
                     </div>
                   </div>
-                  <button onClick={(e)=>{ e.stopPropagation(); changeGlass(1); }} className="w-8 h-8 rounded-full border" disabled={waterGlasses>=MAX_GLASSES}>+</button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      changeGlass(1);
+                    }}
+                    className="w-8 h-8 rounded-full border"
+                    disabled={waterGlasses >= MAX_GLASSES}
+                  >
+                    +
+                  </button>
                 </div>
-                <div className="text-xs text-gray-400 mt-2">Tip: saved to backend after a short delay • {waterGlasses}/{MAX_GLASSES}</div>
+                <div className="text-xs text-gray-400 mt-2">
+                  Tip: saved to backend after a short delay •{" "}
+                  {waterGlasses}/{MAX_GLASSES}
+                </div>
               </div>
             </CardHover>
 
@@ -625,32 +776,53 @@ function HealthDashboard({ employeeIdProp }) {
               <h4 className="font-semibold p-3">Health Tips</h4>
               <div className="px-3 pb-3">
                 <ul className="mt-2 text-sm text-gray-700">
-                  {(personalizedTips.length ? personalizedTips : ["Drink 2L water daily","30 mins of exercise"]).map((t,i)=><li key={i}>• {t}</li>)}
+                  {(personalizedTips.length
+                    ? personalizedTips
+                    : ["Drink 2L water daily", "30 mins of exercise"]
+                  ).map((t, i) => (
+                    <li key={i}>• {t}</li>
+                  ))}
                 </ul>
               </div>
             </CardHover>
           </div>
 
           {/* CENTER */}
-          <div className="col-span-6 space-y-4">
+          <div className="col-span-12 lg:col-span-6 space-y-4">
             <div className={cardClass()}>
               <div className="flex items-start justify-between p-5">
                 <div>
                   <h3 className="text-xl font-semibold">Health Dashboard</h3>
-                  <div className="text-sm text-gray-500">Overview for {profile?.name || "User"}</div>
+                  <div className="text-sm text-gray-500">
+                    Overview for {profile?.name || "User"}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <button onClick={() => { fetchHealthReport(); fetchChartData(); }} className="px-3 py-1 border rounded text-sm bg-white">Refresh</button>
+                  <button
+                    onClick={() => {
+                      fetchHealthReport();
+                      fetchChartData();
+                    }}
+                    className="px-3 py-1 border rounded text-sm bg-white"
+                  >
+                    Refresh
+                  </button>
                   <BackendStatus employeeId={employeeId} />
                 </div>
               </div>
 
-              {/* ===== 2x2 Equal Boxes Grid (all boxes same size) ===== */}
+              {/* 2x2 Equal Boxes Grid */}
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 p-5">
-                <CardHover id="healthTrend" className={visualBox("healthTrend")} onClick={() => {}}>
-                  <div className="text-xs text-gray-500 mb-2">Health Score (recent)</div>
-                  <div className="flex-1" style={{ minHeight: 200 }}>
+                <CardHover
+                  id="healthTrend"
+                  className={visualBox("healthTrend")}
+                  onClick={() => {}}
+                >
+                  <div className="text-xs text-gray-500 mb-2">
+                    Health Score (recent)
+                  </div>
+                  <div style={{ width: "100%", height: 250 }}>
                     {(chartData.healthTrend || []).length ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={chartData.healthTrend}>
@@ -658,18 +830,31 @@ function HealthDashboard({ employeeIdProp }) {
                           <XAxis dataKey="date" />
                           <YAxis />
                           <Tooltip />
-                          <Line dataKey="score" stroke="#3b82f6" strokeWidth={2} dot={{ r: 2 }} />
+                          <Line
+                            dataKey="score"
+                            stroke="#3b82f6"
+                            strokeWidth={2}
+                            dot={{ r: 2 }}
+                          />
                         </LineChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="h-full flex items-center justify-center text-sm text-gray-400">No health trend data available.</div>
+                      <div className="h-full flex items-center justify-center text-sm text-gray-400">
+                        No health trend data available.
+                      </div>
                     )}
                   </div>
                 </CardHover>
 
-                <CardHover id="consultations" className={visualBox("consultations")} onClick={() => {}}>
-                  <div className="text-xs text-gray-500 mb-2">Consultations (last months)</div>
-                  <div className="flex-1" style={{ minHeight: 200 }}>
+                <CardHover
+                  id="consultations"
+                  className={visualBox("consultations")}
+                  onClick={() => {}}
+                >
+                  <div className="text-xs text-gray-500 mb-2">
+                    Consultations (last months)
+                  </div>
+                  <div style={{ width: "100%", height: 250 }}>
                     {(chartData.consultationsByMonth || []).length ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData.consultationsByMonth}>
@@ -681,60 +866,113 @@ function HealthDashboard({ employeeIdProp }) {
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="h-full flex items-center justify-center text-sm text-gray-400">No consultations data.</div>
+                      <div className="h-full flex items-center justify-center text-sm text-gray-400">
+                        No consultations data.
+                      </div>
                     )}
                   </div>
                 </CardHover>
 
-                <CardHover id="doctors" className={visualBox("doctors")} onClick={() => {}}>
+                <CardHover
+                  id="doctors"
+                  className={visualBox("doctors")}
+                  onClick={() => {}}
+                >
                   <h4 className="text-sm font-semibold mb-2">Doctors</h4>
                   <div className="flex-1">
-                    <div className="text-sm text-gray-700">Dr. Priya Sharma — General — <span className="text-green-600">Online</span></div>
-                    <div className="text-sm text-gray-700 mt-2">Dr. Arun Rao — Cardiology — <span className="text-gray-400">Offline</span></div>
-                    <div className="mt-4 text-sm text-gray-600">Use the chat or clinic to schedule appointments.</div>
+                    <div className="text-sm text-gray-700">
+                      Dr. Priya Sharma — General —{" "}
+                      <span className="text-green-600">Online</span>
+                    </div>
+                    <div className="text-sm text-gray-700 mt-2">
+                      Dr. Arun Rao — Cardiology —{" "}
+                      <span className="text-gray-400">Offline</span>
+                    </div>
+                    <div className="mt-4 text-sm text-gray-600">
+                      Use the chat or clinic to schedule appointments.
+                    </div>
                   </div>
                 </CardHover>
 
-                <CardHover id="notes" className={visualBox("notes")} onClick={() => {}}>
+                <CardHover
+                  id="notes"
+                  className={visualBox("notes")}
+                  onClick={() => {}}
+                >
                   <h4 className="text-sm font-semibold mb-2">Recent Notes</h4>
                   <div className="flex-1">
                     <ul className="text-sm text-gray-700 space-y-1">
-                      <li>• Follow-up with Dr. Priya on 12 Nov — prescribed Vitamin D.</li>
+                      <li>
+                        • Follow-up with Dr. Priya on 12 Nov — prescribed
+                        Vitamin D.
+                      </li>
                       <li>• Completed 3 workouts this week.</li>
-                      <li>• Hydration streak: {waterGlasses} glasses today.</li>
+                      <li>
+                        • Hydration streak: {waterGlasses} glasses today.
+                      </li>
                     </ul>
                   </div>
                 </CardHover>
               </div>
-              {/* ===== end equal boxes grid ===== */}
             </div>
-
-            {/* Chat card removed earlier on request — still no UI here */}
           </div>
 
           {/* RIGHT */}
-          <div className="col-span-3 space-y-4">
+          <div className="col-span-12 lg:col-span-3 space-y-4">
             <CardHover id="breathing" className={visualCard("breathing")}>
               <h4 className="text-sm font-semibold">Breathing Exercise</h4>
               <BreathingWidget />
             </CardHover>
 
-            <CardHover id="bmi" className={visualCard("bmi")}>
-              <h4 className="text-sm font-semibold">BMI Calculator</h4>
-              <form onSubmit={handleCalculateAndSaveBMI} className="mt-3 space-y-2 p-3">
-                <input value={weight} onChange={(e)=>setWeight(e.target.value)} placeholder="Weight (kg)" className="w-full border rounded p-2 text-sm" />
-                <input value={height} onChange={(e)=>setHeight(e.target.value)} placeholder="Height (cm)" className="w-full border rounded p-2 text-sm" />
-                <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded">Calculate</button>
+            {/* BMI card WITHOUT CardHover (fixes input focus issue) */}
+            <div className={visualCard("bmi")}>
+              <h4 className="text-sm font-semibold p-3 pb-0">BMI Calculator</h4>
+              <form
+                onSubmit={handleCalculateAndSaveBMI}
+                className="mt-3 space-y-2 p-3"
+              >
+                <input
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  placeholder="Weight (kg)"
+                  className="w-full border rounded p-2 text-sm"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <input
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                  placeholder="Height (cm)"
+                  className="w-full border rounded p-2 text-sm"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <button
+                  type="submit"
+                  className="w-full bg-indigo-600 text-white py-2 rounded"
+                >
+                  Calculate
+                </button>
               </form>
-              <div className="mt-2 text-sm text-gray-600 p-3">BMI: {bmi || profile?.bmi || "-"}</div>
-            </CardHover>
+              <div className="mt-2 text-sm text-gray-600 p-3">
+                BMI: {bmi || profile?.bmi || "-"}
+              </div>
+            </div>
 
             <CardHover id="ambulance" className={visualCard("ambulance")}>
               <h4 className="text-sm font-semibold">Ambulance</h4>
-              <div className="mt-3 text-sm text-gray-600">Call ambulance in case of emergency.</div>
+              <div className="mt-3 text-sm text-gray-600">
+                Call ambulance in case of emergency.
+              </div>
               <button
-                // Replaced window.confirm with custom modal trigger
-                onClick={(e) => { e.stopPropagation(); document.getElementById('confirm_ambulance')?.showModal(); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  document.getElementById("confirm_ambulance")?.showModal();
+                }}
                 className="mt-3 w-full bg-red-600 text-white py-2 rounded"
               >
                 Call Ambulance
@@ -745,24 +983,93 @@ function HealthDashboard({ employeeIdProp }) {
         <BackendStatus employeeId={employeeId} />
       </div>
 
-      {/* Profile Edit Modal (unchanged) */}
+      {/* Profile Edit Modal */}
       {profileEditing && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
             <h4 className="font-semibold mb-3">Edit Profile</h4>
             <form onSubmit={handleSaveProfile} className="space-y-3">
-              <input value={draftProfile.name} onChange={(e)=>setDraftProfile({...draftProfile, name: e.target.value})} className="w-full border rounded p-2" placeholder="Full name" />
-              <input value={draftProfile.email} onChange={(e)=>setDraftProfile({...draftProfile, email: e.target.value})} className="w-full border rounded p-2" placeholder="Email" />
+              <input
+                value={draftProfile.name}
+                onChange={(e) =>
+                  setDraftProfile({ ...draftProfile, name: e.target.value })
+                }
+                className="w-full border rounded p-2"
+                placeholder="Full name"
+              />
+              <input
+                value={draftProfile.email}
+                onChange={(e) =>
+                  setDraftProfile({ ...draftProfile, email: e.target.value })
+                }
+                className="w-full border rounded p-2"
+                placeholder="Email"
+              />
               <div className="flex gap-2">
-                <input value={draftProfile.age} onChange={(e)=>setDraftProfile({...draftProfile, age: e.target.value})} className="w-1/2 border rounded p-2" placeholder="Age" />
-                <input value={draftProfile.gender} onChange={(e)=>setDraftProfile({...draftProfile, gender: e.target.value})} className="w-1/2 border rounded p-2" placeholder="Gender" />
+                <input
+                  value={draftProfile.age}
+                  onChange={(e) =>
+                    setDraftProfile({ ...draftProfile, age: e.target.value })
+                  }
+                  className="w-1/2 border rounded p-2"
+                  placeholder="Age"
+                />
+                <input
+                  value={draftProfile.gender}
+                  onChange={(e) =>
+                    setDraftProfile({ ...draftProfile, gender: e.target.value })
+                  }
+                  className="w-1/2 border rounded p-2"
+                  placeholder="Gender"
+                />
               </div>
-              <input value={draftProfile.blood_group} onChange={(e)=>setDraftProfile({...draftProfile, blood_group: e.target.value})} className="w-full border rounded p-2" placeholder="Blood Group" />
-              <input value={draftProfile.allergies} onChange={(e)=>setDraftProfile({...draftProfile, allergies: e.target.value})} className="w-full border rounded p-2" placeholder="Allergies" />
-              <input value={draftProfile.chronic_conditions} onChange={(e)=>setDraftProfile({...draftProfile, chronic_conditions: e.target.value})} className="w-full border rounded p-2" placeholder="Chronic Conditions" />
+              <input
+                value={draftProfile.blood_group}
+                onChange={(e) =>
+                  setDraftProfile({
+                    ...draftProfile,
+                    blood_group: e.target.value,
+                  })
+                }
+                className="w-full border rounded p-2"
+                placeholder="Blood Group"
+              />
+              <input
+                value={draftProfile.allergies}
+                onChange={(e) =>
+                  setDraftProfile({
+                    ...draftProfile,
+                    allergies: e.target.value,
+                  })
+                }
+                className="w-full border rounded p-2"
+                placeholder="Allergies"
+              />
+              <input
+                value={draftProfile.chronic_conditions}
+                onChange={(e) =>
+                  setDraftProfile({
+                    ...draftProfile,
+                    chronic_conditions: e.target.value,
+                  })
+                }
+                className="w-full border rounded p-2"
+                placeholder="Chronic Conditions"
+              />
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={()=>setProfileEditing(false)} className="px-4 py-2 rounded border">Cancel</button>
-                <button type="submit" className="px-4 py-2 rounded bg-indigo-600 text-white">Save</button>
+                <button
+                  type="button"
+                  onClick={() => setProfileEditing(false)}
+                  className="px-4 py-2 rounded border"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-indigo-600 text-white"
+                >
+                  Save
+                </button>
               </div>
             </form>
           </div>
@@ -776,14 +1083,19 @@ function HealthDashboard({ employeeIdProp }) {
   Profile Page
   ========================= */
 function ProfilePage() {
-  const [employeeId] = useState(localStorage.getItem("employee_id") || "emp_001");
+  const [employeeId] = useState(
+    localStorage.getItem("employee_id") || "emp_001"
+  );
   const [profile, setProfile] = useState(null);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await backendPost({ employee_id: employeeId, type: "health_report" });
+        const res = await backendPost({
+          employee_id: employeeId,
+          type: "health_report",
+        });
         if (res.__notFound) setNotFound(true);
         else setProfile(res.profile);
       } catch (err) {
@@ -796,7 +1108,9 @@ function ProfilePage() {
     <div className="p-6 h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto bg-white rounded-2xl p-6 shadow">
         <h2 className="text-xl font-semibold">Profile</h2>
-        {notFound ? <div className="text-sm text-gray-500">No profile found.</div> : (
+        {notFound ? (
+          <div className="text-sm text-gray-500">No profile found.</div>
+        ) : (
           <div className="mt-4 text-sm text-gray-700 space-y-2">
             <div>Name: {profile?.name || "-"}</div>
             <div>Age: {profile?.age || "-"}</div>
@@ -817,51 +1131,74 @@ function ProfilePage() {
   Reports Page
   ========================= */
 function ReportsPage() {
-  const [employeeId] = useState(localStorage.getItem("employee_id") || "emp_001");
+  const [employeeId] = useState(
+    localStorage.getItem("employee_id") || "emp_001"
+  );
   const [chartData, setChartData] = useState({ healthTrend: [] });
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await backendPost({ employee_id: employeeId, type: "chart_data" });
-        const healthTrend = Array.isArray(res?.healthTrend) ? res.healthTrend : [];
+        const res = await backendPost({
+          employee_id: employeeId,
+          type: "chart_data",
+        });
+        const healthTrend = Array.isArray(res?.healthTrend)
+          ? res.healthTrend
+          : [];
         const demoHealthTrend = [
           { date: "2025-11-01", score: 72 },
           { date: "2025-11-05", score: 75 },
           { date: "2025-11-10", score: 68 },
         ];
-        setChartData({ healthTrend: healthTrend.length ? healthTrend : demoHealthTrend });
+        setChartData({
+          healthTrend: healthTrend.length ? healthTrend : demoHealthTrend,
+        });
       } catch (err) {
         console.error(err);
-        setChartData({ healthTrend: [
-          { date: "2025-11-01", score: 72 },
-          { date: "2025-11-05", score: 75 },
-          { date: "2025-11-10", score: 68 },
-        ]});
+        setChartData({
+          healthTrend: [
+            { date: "2025-11-01", score: 72 },
+            { date: "2025-11-05", score: 75 },
+            { date: "2025-11-10", score: 68 },
+          ],
+        });
       }
     })();
   }, [employeeId]);
 
   return (
     <div className="p-6 h-screen bg-gray-50 overflow-auto">
-      <div className="max-w-6xl mx-auto grid grid-cols-2 gap-4">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded shadow">
           <h3 className="text-sm font-semibold">Health Trend</h3>
           <div style={{ height: 240 }}>
             {(chartData.healthTrend || []).length ? (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData.healthTrend}><XAxis dataKey="date"/><YAxis/><Tooltip/><Line dataKey="score" stroke="#3b82f6" /></LineChart>
+                <LineChart data={chartData.healthTrend}>
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line dataKey="score" stroke="#3b82f6" />
+                </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-sm text-gray-400">No data</div>
+              <div className="h-full flex items-center justify-center text-sm text-gray-400">
+                No data
+              </div>
             )}
           </div>
         </div>
         <div className="bg-white p-4 rounded shadow">
           <h3 className="text-sm font-semibold">Medical Report (Bot)</h3>
           <div className="p-4 text-sm text-gray-700">
-            <p><strong>Summary:</strong></p>
-            <p>The bot composes a concise medical report using user data and recent activity. Use the chat to request a detailed report.</p>
+            <p>
+              <strong>Summary:</strong>
+            </p>
+            <p>
+              The bot composes a concise medical report using user data and
+              recent activity. Use the chat to request a detailed report.
+            </p>
           </div>
         </div>
         <BackendStatus employeeId={employeeId} />
@@ -874,7 +1211,9 @@ function ReportsPage() {
   AppShell with Navigation
   ========================= */
 function AppShell() {
-  const [employeeId, setEmployeeId] = useState(localStorage.getItem("employee_id") || "");
+  const [employeeId, setEmployeeId] = useState(
+    localStorage.getItem("employee_id") || ""
+  );
   const [isMinimized, setIsMinimized] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
@@ -882,15 +1221,14 @@ function AppShell() {
   const [botPopupOpen, setBotPopupOpen] = useState(false);
   const [creatingChannel, setCreatingChannel] = useState(false);
 
-  // NEW: Modals state
   const [alertModal, setAlertModal] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
 
-  // NEW: Channel setup state
-  const [savedChannelId, setSavedChannelId] = useState(localStorage.getItem("hm_channel_id") || "");
+  const [savedChannelId, setSavedChannelId] = useState(
+    localStorage.getItem("hm_channel_id") || ""
+  );
   const [channelNameDraft, setChannelNameDraft] = useState("HealthMate Alerts");
 
-  // NEW: Access Channel modal & form fields
   const [accessChannelOpen, setAccessChannelOpen] = useState(false);
   const [formChannelName, setFormChannelName] = useState("");
   const [formChannelId, setFormChannelId] = useState("");
@@ -899,16 +1237,24 @@ function AppShell() {
   const botHoverTimeout = useRef(null);
   const navigate = useNavigate();
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
   useEffect(() => {
-    function onStorage(e) { if (e.key === "employee_id") setEmployeeId(e.newValue || ""); }
-    window.addEventListener("storage", onStorage); return () => window.removeEventListener("storage", onStorage);
+    function onStorage(e) {
+      if (e.key === "employee_id") setEmployeeId(e.newValue || "");
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   function openSignIn() {
     setSignInValue(localStorage.getItem("employee_id") || "");
     setSignInOpen(true);
   }
-  function closeSignIn() { setSignInOpen(false); setSignInValue(""); }
+  function closeSignIn() {
+    setSignInOpen(false);
+    setSignInValue("");
+  }
 
   function saveSignIn() {
     const v = (signInValue || "").trim();
@@ -918,19 +1264,24 @@ function AppShell() {
     setSignInOpen(false);
   }
 
-  // create channel (defensive extraction + persist)
+  // create channel
   async function createChannel() {
     if (!employeeId) {
-      setAlertModal({ title: "Sign In Required", message: "Please sign in (set Employee ID) before creating a channel." });
+      setAlertModal({
+        title: "Sign In Required",
+        message: "Please sign in (set Employee ID) before creating a channel.",
+      });
       return;
     }
 
-    // Prompt for channel name using the confirm modal structure as a quick input
     setConfirmModal({
       title: "Create Cliq Channel",
       message: (
         <div className="space-y-3">
-          <p className="text-sm text-gray-700">Enter a name for the new Zoho Cliq channel where alerts will be sent. (E.g., "Emergency Alerts")</p>
+          <p className="text-sm text-gray-700">
+            Enter a name for the new Zoho Cliq channel where alerts will be
+            sent. (E.g., "Emergency Alerts")
+          </p>
           <input
             value={channelNameDraft}
             onChange={(e) => setChannelNameDraft(e.target.value)}
@@ -942,20 +1293,21 @@ function AppShell() {
       confirmText: "Create",
       onConfirm: async () => {
         if (!channelNameDraft.trim()) {
-          setAlertModal({ title: "Error", message: "Channel name cannot be empty." });
+          setAlertModal({
+            title: "Error",
+            message: "Channel name cannot be empty.",
+          });
           return;
         }
 
         try {
           setCreatingChannel(true);
-          // Send required channel_name in the payload
-          const res = await backendPost({ 
-            employee_id: employeeId, 
+          const res = await backendPost({
+            employee_id: employeeId,
             type: "create_channel",
-            channel_name: channelNameDraft.trim() // Pass the draft value
+            channel_name: channelNameDraft.trim(),
           });
 
-          // Defensive extraction of channel id from backend response
           const maybeChannelId =
             res?.channel?.channel_id ||
             res?.channelId ||
@@ -964,21 +1316,34 @@ function AppShell() {
             null;
 
           if (maybeChannelId) {
-            try { localStorage.setItem("hm_channel_id", maybeChannelId); } catch {}
+            try {
+              localStorage.setItem("hm_channel_id", maybeChannelId);
+            } catch {}
             setSavedChannelId(maybeChannelId);
-            setAlertModal({ title: "Success", message: `Channel created and configured! ID: ${maybeChannelId}` });
+            setAlertModal({
+              title: "Success",
+              message: `Channel created and configured! ID: ${maybeChannelId}`,
+            });
             return;
           }
 
           if (res?.message) {
-            setAlertModal({ title: "Channel Created", message: res.message + " (ID not explicitly returned, check Catalyst Config for persistence.)" });
+            setAlertModal({
+              title: "Channel Created",
+              message:
+                res.message +
+                " (ID not explicitly returned, check Catalyst Config for persistence.)",
+            });
             return;
           }
 
-          setAlertModal({ title: "Success (No ID)", message: "Channel creation initiated. Check Catalyst console for status." });
+          setAlertModal({
+            title: "Success (No ID)",
+            message:
+              "Channel creation initiated. Check Catalyst console for status.",
+          });
         } catch (err) {
           console.error("createChannel error", err);
-          // Attempt to parse the error message if possible
           let errMsg = "Failed to create channel due to server error.";
           try {
             const parsedError = JSON.parse(err.message);
@@ -989,17 +1354,20 @@ function AppShell() {
           setAlertModal({ title: "Failure", message: errMsg });
         } finally {
           setCreatingChannel(false);
-          setConfirmModal(null); // Close the input modal
+          setConfirmModal(null);
         }
-      }
+      },
     });
   }
 
-  // NEW: Save channel details from Access Channel modal (calls backend type: "save_channel")
+  // save channel details
   async function handleSaveChannelDetails(e) {
     e && e.preventDefault();
     if (!employeeId) {
-      setAlertModal({ title: "Sign In Required", message: "Please sign in (set Employee ID) before saving a channel." });
+      setAlertModal({
+        title: "Sign In Required",
+        message: "Please sign in (set Employee ID) before saving a channel.",
+      });
       return;
     }
     const payload = {
@@ -1013,13 +1381,17 @@ function AppShell() {
     try {
       const res = await backendPost(payload);
       if (res && res.saved) {
-        try { localStorage.setItem("hm_channel_id", formChannelId); } catch {}
+        try {
+          localStorage.setItem("hm_channel_id", formChannelId);
+        } catch {}
         setSavedChannelId(formChannelId);
         setAccessChannelOpen(false);
         setAlertModal({ title: "Saved", message: "Channel saved successfully." });
       } else {
-        // handle non-saved but successful response
-        setAlertModal({ title: "Response", message: res?.message || "Channel saved (no explicit saved flag returned)." });
+        setAlertModal({
+          title: "Response",
+          message: res?.message || "Channel saved (no explicit saved flag returned).",
+        });
       }
     } catch (err) {
       console.error("save channel error", err);
@@ -1032,9 +1404,12 @@ function AppShell() {
     }
   }
 
-  // Hover behavior for floating bot
+  // Floating bot hover
   function handleBotMouseEnter() {
-    if (botHoverTimeout.current) { clearTimeout(botHoverTimeout.current); botHoverTimeout.current = null; }
+    if (botHoverTimeout.current) {
+      clearTimeout(botHoverTimeout.current);
+      botHoverTimeout.current = null;
+    }
     setBotPopupOpen(true);
   }
   function handleBotMouseLeave() {
@@ -1045,7 +1420,12 @@ function AppShell() {
   if (isClosed)
     return (
       <div className="h-screen flex items-end justify-end p-6 bg-gray-100">
-        <button onClick={() => setIsClosed(false)} className="bg-indigo-600 text-white px-4 py-2 rounded-full">Open HealthMate</button>
+        <button
+          onClick={() => setIsClosed(false)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-full"
+        >
+          Open HealthMate
+        </button>
         <BackendStatus employeeId={employeeId} />
       </div>
     );
@@ -1066,67 +1446,163 @@ function AppShell() {
   return (
     <div className="h-screen bg-gray-50">
       {/* HEADER */}
-      <header className="h-16 bg-white border-b flex items-center justify-between px-6">
+      <header className="h-16 bg-white border-b flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">HM</div>
-          <div>
+          <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+            HM
+          </div>
+          <div className="hidden sm:block">
             <div className="font-semibold">HealthMate Widget</div>
-            <div className="text-xs text-gray-500">Corporate Doctor · Smart dashboard</div>
+            <div className="text-xs text-gray-500">
+              Corporate Doctor · Smart dashboard
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="text-sm text-gray-600">Dashboard</button>
-          <button onClick={() => navigate("/profile")} className="text-sm text-gray-600">Profile</button>
-          <button onClick={() => navigate("/reports")} className="text-sm text-gray-600">Reports</button>
+          {/* desktop nav */}
+          <div className="hidden md:flex items-center gap-3">
+            <button
+              onClick={() => navigate("/")}
+              className="text-sm text-gray-600"
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate("/profile")}
+              className="text-sm text-gray-600"
+            >
+              Profile
+            </button>
+            <button
+              onClick={() => navigate("/reports")}
+              className="text-sm text-gray-600"
+            >
+              Reports
+            </button>
 
-          <button
-            onClick={() => window.open("https://cliq.zoho.com/bots/healthmatedoctor", "_blank")}
-            className="px-3 py-1 rounded bg-indigo-600 text-white"
-          >
-            Access Bot
-          </button>
+            <button
+              onClick={() =>
+                window.open("https://cliq.zoho.com/bots/healthmatedoctor", "_blank")
+              }
+              className="px-3 py-1 rounded bg-indigo-600 text-white"
+            >
+              Access Bot
+            </button>
 
-          {/* NEW: Access Channel button opens the form modal */}
-          <button
-            onClick={() => setAccessChannelOpen(true)}
-            className="px-3 py-1 rounded border text-sm bg-white"
-            title="Access Channel"
-          >
-            Access Channel
-          </button>
+            <button
+              onClick={() => setAccessChannelOpen(true)}
+              className="px-3 py-1 rounded border text-sm bg-white"
+              title="Access Channel"
+            >
+              Access Channel
+            </button>
 
-          {/* NOTE: "Create Channel" button intentionally removed from visible header as earlier request said — createChannel() still available */}
-          {/* show saved Channel ID (if present) */}
-          {savedChannelId ? (
-            <div className="text-xs text-gray-500 ml-3">
-              Channel: <span className="font-mono text-sm text-indigo-600">{savedChannelId}</span>
-            </div>
-          ) : (
-            <div className="text-xs text-gray-400 ml-3"></div>
-          )}
+            {savedChannelId ? (
+              <div className="text-xs text-gray-500 ml-3">
+                Channel:{" "}
+                <span className="font-mono text-sm text-indigo-600">
+                  {savedChannelId}
+                </span>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-400 ml-3"></div>
+            )}
+          </div>
 
-          {/* ===== REPLACED SIGN IN control to match your screenshot ===== */}
+          {/* small-screen menu */}
+          <div className="md:hidden relative">
+            <button
+              onClick={() => setMenuOpen((s) => !s)}
+              className="px-3 py-1 border rounded text-sm"
+            >
+              Menu
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white shadow rounded p-2 z-40">
+                <button
+                  onClick={() => {
+                    navigate("/");
+                    setMenuOpen(false);
+                  }}
+                  className="block w-full text-left p-2 text-sm"
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => {
+                    navigate("/profile");
+                    setMenuOpen(false);
+                  }}
+                  className="block w-full text-left p-2 text-sm"
+                >
+                  Profile
+                </button>
+                <button
+                  onClick={() => {
+                    navigate("/reports");
+                    setMenuOpen(false);
+                  }}
+                  className="block w-full text-left p-2 text-sm"
+                >
+                  Reports
+                </button>
+                <button
+                  onClick={() => {
+                    window.open(
+                      "https://cliq.zoho.com/bots/healthmatedoctor",
+                      "_blank"
+                    );
+                    setMenuOpen(false);
+                  }}
+                  className="block w-full text-left p-2 text-sm"
+                >
+                  Access Bot
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* SIGN IN */}
           <div className="ml-2">
             {employeeId ? (
               <div className="flex items-center gap-2">
-                <div className="text-sm text-gray-700">Signed in: <span className="font-medium">{employeeId}</span></div>
-                <button onClick={openSignIn} className="px-3 py-1 border rounded text-sm">Change</button>
+                <div className="text-sm text-gray-700 hidden sm:block">
+                  Signed in: <span className="font-medium">{employeeId}</span>
+                </div>
+                <button
+                  onClick={openSignIn}
+                  className="px-3 py-1 border rounded text-sm"
+                >
+                  Change
+                </button>
               </div>
             ) : (
-              // Prominent purple Sign In button (matches screenshot)
               <button
                 onClick={openSignIn}
                 className="px-4 py-2 rounded-md text-white font-medium"
-                style={{ background: "#4f46e5", boxShadow: "0 6px 18px rgba(79,70,229,0.18)" }}
+                style={{
+                  background: "#4f46e5",
+                  boxShadow: "0 6px 18px rgba(79,70,229,0.18)",
+                }}
               >
                 Sign In
               </button>
             )}
           </div>
 
-          <button onClick={() => setIsMinimized(true)} className="w-8 h-8 rounded-full bg-yellow-300">─</button>
-          <button onClick={() => setIsClosed(true)} className="w-8 h-8 rounded-full bg-red-500 text-white">×</button>
+          <button
+            onClick={() => setIsMinimized(true)}
+            className="w-8 h-8 rounded-full bg-yellow-300"
+          >
+            ─
+          </button>
+          <button
+            onClick={() => setIsClosed(true)}
+            className="w-8 h-8 rounded-full bg-red-500 text-white"
+          >
+            ×
+          </button>
         </div>
       </header>
 
@@ -1138,7 +1614,7 @@ function AppShell() {
         </Routes>
       </main>
 
-      {/* Floating Bot button + popup (unchanged) */}
+      {/* Floating Bot */}
       <div
         className="fixed bottom-6 right-6 z-50 flex items-end justify-end"
         onMouseEnter={handleBotMouseEnter}
@@ -1151,18 +1627,30 @@ function AppShell() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 text-lg">🤖</div>
+                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 text-lg">
+                  🤖
+                </div>
                 <div>
                   <div className="font-semibold">HealthMate Bot</div>
                   <div className="text-xs text-gray-500">Open in Zoho Cliq</div>
                 </div>
               </div>
-              <button onClick={() => setBotPopupOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              <button
+                onClick={() => setBotPopupOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
             </div>
 
             <div className="mt-3">
               <button
-                onClick={() => window.open("https://cliq.zoho.com/bots/healthmatedoctor", "_blank")}
+                onClick={() =>
+                  window.open(
+                    "https://cliq.zoho.com/bots/healthmatedoctor",
+                    "_blank"
+                  )
+                }
                 className="w-full bg-indigo-600 text-white py-2 rounded"
               >
                 Open Bot
@@ -1182,22 +1670,30 @@ function AppShell() {
         )}
 
         <button
-          onClick={() => window.open("https://cliq.zoho.com/bots/healthmatedoctor", "_blank")}
+          onClick={() =>
+            window.open("https://cliq.zoho.com/bots/healthmatedoctor", "_blank")
+          }
           title="Access HealthMate Bot"
-          className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl transition-transform transform focus:outline-none
-            ${botPopupOpen ? "ring-4 ring-indigo-200 scale-105" : "hover:scale-105"}
-          `}
+          className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl transition-transform transform focus:outline-none ${
+            botPopupOpen ? "ring-4 ring-indigo-200 scale-105" : "hover:scale-105"
+          }`}
           style={{
             background: "linear-gradient(180deg,#6366f1,#4f46e5)",
             color: "white",
-            boxShadow: botPopupOpen ? "0 12px 30px rgba(99,102,241,0.28)" : "0 8px 20px rgba(79,70,229,0.18)",
+            boxShadow: botPopupOpen
+              ? "0 12px 30px rgba(99,102,241,0.28)"
+              : "0 8px 20px rgba(79,70,229,0.18)",
           }}
         >
-          <span style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.15))" }}>🤖</span>
+          <span
+            style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.15))" }}
+          >
+            🤖
+          </span>
         </button>
       </div>
 
-      {/* ===== Sign In Modal (styled to match screenshot) ===== */}
+      {/* Sign In Modal */}
       {signInOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
@@ -1211,8 +1707,17 @@ function AppShell() {
               style={{ background: "#fbfbfb" }}
             />
             <div className="flex justify-end items-center gap-3">
-              <button onClick={closeSignIn} className="px-4 py-2 rounded border">Cancel</button>
-              <button onClick={saveSignIn} className="px-4 py-2 rounded text-white" style={{ background: "#4f46e5" }}>
+              <button
+                onClick={closeSignIn}
+                className="px-4 py-2 rounded border"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveSignIn}
+                className="px-4 py-2 rounded text-white"
+                style={{ background: "#4f46e5" }}
+              >
                 Sign In
               </button>
             </div>
@@ -1221,37 +1726,74 @@ function AppShell() {
         </div>
       )}
 
-      {/* ===== Access Channel Modal (NEW) ===== */}
+      {/* Access Channel Modal */}
       {accessChannelOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <h3 className="text-lg font-semibold mb-2">Access Channel</h3>
-            <p className="text-sm text-gray-600 mb-4">Enter channel details to save to the backend datastore.</p>
+            <p className="text-sm text-gray-600 mb-4">
+              Enter channel details to save to the backend datastore.
+            </p>
             <form onSubmit={handleSaveChannelDetails} className="space-y-3">
               <label className="text-xs text-gray-600">Created name</label>
-              <input value={formChannelName} onChange={(e)=>setFormChannelName(e.target.value)} placeholder="Channel name" className="w-full border rounded p-2 text-sm" />
+              <input
+                value={formChannelName}
+                onChange={(e) => setFormChannelName(e.target.value)}
+                placeholder="Channel name"
+                className="w-full border rounded p-2 text-sm"
+              />
               <label className="text-xs text-gray-600">Created ID</label>
-              <input value={formChannelId} onChange={(e)=>setFormChannelId(e.target.value)} placeholder="Channel ID" className="w-full border rounded p-2 text-sm" />
+              <input
+                value={formChannelId}
+                onChange={(e) => setFormChannelId(e.target.value)}
+                placeholder="Channel ID"
+                className="w-full border rounded p-2 text-sm"
+              />
               <label className="text-xs text-gray-600">Created by</label>
-              <input value={formCreatedBy} onChange={(e)=>setFormCreatedBy(e.target.value)} placeholder="Created by (user)" className="w-full border rounded p-2 text-sm" />
+              <input
+                value={formCreatedBy}
+                onChange={(e) => setFormCreatedBy(e.target.value)}
+                placeholder="Created by (user)"
+                className="w-full border rounded p-2 text-sm"
+              />
 
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={()=>setAccessChannelOpen(false)} className="px-4 py-2 rounded border">Cancel</button>
-                <button type="submit" className="px-4 py-2 rounded bg-indigo-600 text-white">Save</button>
+                <button
+                  type="button"
+                  onClick={() => setAccessChannelOpen(false)}
+                  className="px-4 py-2 rounded border"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-indigo-600 text-white"
+                >
+                  Save
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
-      
-      {/* ===== Custom Alert Modal (for alerts) ===== */}
-      <dialog id="alert_modal" className="rounded-2xl shadow-2xl p-6 w-full max-w-sm backdrop:bg-black/40" open={!!alertModal}>
+
+      {/* Alert Modal */}
+      <dialog
+        id="alert_modal"
+        className="rounded-2xl shadow-2xl p-6 w-full max-w-sm backdrop:bg-black/40"
+        open={!!alertModal}
+      >
         {alertModal && (
           <div>
-            <h3 className="text-lg font-semibold mb-2">{alertModal.title}</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {alertModal.title}
+            </h3>
             <p className="text-sm text-gray-600 mb-4">{alertModal.message}</p>
             <div className="flex justify-end">
-              <button onClick={() => setAlertModal(null)} className="px-4 py-2 rounded bg-indigo-600 text-white">
+              <button
+                onClick={() => setAlertModal(null)}
+                className="px-4 py-2 rounded bg-indigo-600 text-white"
+              >
                 Close
               </button>
             </div>
@@ -1259,26 +1801,35 @@ function AppShell() {
         )}
       </dialog>
 
-      {/* ===== Custom Confirm Modal (for ambulance) ===== */}
-      <dialog id="confirm_ambulance" className="rounded-2xl shadow-2xl p-6 w-full max-w-md backdrop:bg-black/40">
+      {/* Confirm Ambulance Modal */}
+      <dialog
+        id="confirm_ambulance"
+        className="rounded-2xl shadow-2xl p-6 w-full max-w-md backdrop:bg-black/40"
+      >
         <h3 className="text-lg font-semibold mb-2">Emergency Call</h3>
-        <p className="text-sm text-gray-600 mb-4">Are you sure you want to call the emergency number (108) now?</p>
+        <p className="text-sm text-gray-600 mb-4">
+          Are you sure you want to call the emergency number (108) now?
+        </p>
         <div className="flex justify-end gap-3">
-          <button onClick={() => document.getElementById('confirm_ambulance')?.close()} className="px-4 py-2 rounded border">
+          <button
+            onClick={() =>
+              document.getElementById("confirm_ambulance")?.close()
+            }
+            className="px-4 py-2 rounded border"
+          >
             Cancel
           </button>
-          <button 
-            onClick={() => { 
-              document.getElementById('confirm_ambulance')?.close(); 
-              window.open("tel:108"); 
-            }} 
+          <button
+            onClick={() => {
+              document.getElementById("confirm_ambulance")?.close();
+              window.open("tel:108");
+            }}
             className="px-4 py-2 rounded bg-red-600 text-white"
           >
             Call 108
           </button>
         </div>
       </dialog>
-      
     </div>
   );
 }
